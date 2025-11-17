@@ -1,0 +1,12 @@
+{
+  "id": "bridgeman_barracks",
+  "name": "Bridgeman Barracks",
+  "description": "Cremlings skitter along the damp stone while narrow bunks groan under worn bedding. The distant rumble of a brewing highstorm vibrates through the walls.",
+  "exits": {
+    "east": "warcamp_plateau"
+  },
+  "items": ["sphere_mark"],
+  "npcs": ["sergeant"],
+  "enemies": []
+}
+

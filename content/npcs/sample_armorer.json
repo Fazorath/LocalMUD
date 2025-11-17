@@ -1,0 +1,12 @@
+{
+  "id": "armorer",
+  "name": "Veteran Armorer",
+  "role": "patches dented plate and keeps blades sharp",
+  "room_id": "storage_bay",
+  "lines": [
+    "The armorer polishes a dented breastplate with practiced motions.",
+    "Keep the gear clean and it might just keep you alive."
+  ],
+  "interactions": ["talk"]
+}
+

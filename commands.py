@@ -4,9 +4,11 @@ from difflib import get_close_matches
 from typing import Dict, List, Optional
 
 import quests
+from duel import Duel
 from game_state import GameState
 from player import Player
 import ui
+from interactions import InteractionRegistry
 
 HELP_SECTIONS: Dict[str, List[str]] = {
     "Movement": [
@@ -19,6 +21,9 @@ HELP_SECTIONS: Dict[str, List[str]] = {
         "inventory / inv - list carried items",
         "equip <item> - wield a weapon",
         "attack <enemy> - engage a foe",
+        "stance <type> - adopt a combat stance",
+        "duel <npc> - challenge an opponent to a duel",
+        "yield - concede the current duel",
     ],
     "People & Quests": [
         "npcs - see who is nearby",
@@ -31,6 +36,7 @@ HELP_SECTIONS: Dict[str, List[str]] = {
         "jobs - list daily jobs",
         "job <id> - attempt a job",
         "say <message> - speak aloud",
+        "interact <who> <interaction> - use special actions like trade",
     ],
     "Meta": [
         "turn - show current time and turn",
@@ -40,6 +46,33 @@ HELP_SECTIONS: Dict[str, List[str]] = {
 }
 
 SHORT_DIRECTIONS = {"north", "south", "east", "west", "up", "down", "in", "out"}
+def _normalize_id(text: str) -> str:
+    return text.strip().lower().replace(" ", "_")
+
+
+def _resolve_quest_id(player: Player, query: str) -> Optional[str]:
+    normalized = _normalize_id(query)
+    # Exact template id match
+    if normalized in quests.QUEST_TEMPLATES:
+        return normalized
+
+    # Match quest names from templates
+    for quest_id, template in quests.QUEST_TEMPLATES.items():
+        if normalized == _normalize_id(template.get("name", quest_id)):
+            return quest_id
+
+    # Match active/completed quest ids or names
+    for collection in (player.quest_log.active_quests, player.quest_log.completed_quests):
+        for quest_id, quest in collection.items():
+            if normalized in {
+                quest_id,
+                _normalize_id(quest_id),
+                _normalize_id(quest.name),
+            }:
+                return quest_id
+    return None
+
+
 KNOWN_COMMANDS = {
     "look",
     "move",
@@ -58,6 +91,10 @@ KNOWN_COMMANDS = {
     "jobs",
     "job",
     "say",
+    "duel",
+    "yield",
+    "stance",
+    "interact",
     "turn",
     "help",
     "quit",
@@ -145,6 +182,13 @@ def handle_command(player: Player, text: str, game_state: GameState) -> bool:
         print(player.attack(target_key))
         return True
 
+    if verb == "stance":
+        if not args:
+            print(ui.hint("Choose a stance: aggressive, balanced, or defensive."))
+            return True
+        print(player.change_stance(args[0]))
+        return True
+
     if verb == "npcs":
         print(player.list_npcs())
         return True
@@ -154,7 +198,54 @@ def handle_command(player: Player, text: str, game_state: GameState) -> bool:
             print(ui.hint("Speak to whom?"))
             return True
         npc_key = " ".join(args)
-        print(player.talk_to(npc_key, game_state))
+        npc = player.find_npc_in_room(npc_key)
+        if not npc:
+            print(ui.warning("No one by that name stands nearby."))
+            return True
+        interaction = InteractionRegistry.get("talk")
+        if not interaction:
+            print(ui.warning("They don't seem interested in conversation."))
+            return True
+        for line in interaction.run(player, npc):
+            print(line)
+        return True
+
+    if verb == "duel":
+        if not args:
+            print(ui.hint("Name the opponent you wish to challenge."))
+            return True
+        npc_key = " ".join(args)
+        npc = player.find_npc_in_room(npc_key)
+        if not npc:
+            print(ui.warning("No one by that name stands nearby."))
+            return True
+        if not getattr(npc, "combat_profile", None):
+            print(ui.warning(f"{npc.name} refuses your challenge."))
+            return True
+        duel = Duel(player, npc)
+        duel.run()
+        return True
+
+    if verb == "interact":
+        if len(args) < 2:
+            print(ui.hint("Usage: interact <who> <interaction>"))
+            return True
+        target_key = " ".join(args[:-1])
+        interaction_name = args[-1].lower()
+        npc = player.find_npc_in_room(target_key)
+        if not npc:
+            print(ui.warning("No one by that name stands nearby."))
+            return True
+        interaction = InteractionRegistry.get(interaction_name)
+        if not interaction:
+            print(ui.warning("You can't do that here."))
+            return True
+        allowed = [name.lower() for name in (npc.interactions or [])]
+        if interaction_name not in allowed:
+            print(ui.warning(f"{npc.name} doesn't seem open to that."))
+            return True
+        for line in interaction.run(player, npc):
+            print(line)
         return True
 
     if verb == "quests":
@@ -174,7 +265,11 @@ def handle_command(player: Player, text: str, game_state: GameState) -> bool:
         if not args:
             print(ui.hint("Specify the quest id to inspect."))
             return True
-        quest_id = args[0].lower()
+        query = " ".join(args)
+        quest_id = _resolve_quest_id(player, query)
+        if not quest_id:
+            print(ui.warning("No quest by that id."))
+            return True
         details = player.quest_log.describe(quest_id)
         if details:
             print(details)
@@ -193,7 +288,11 @@ def handle_command(player: Player, text: str, game_state: GameState) -> bool:
         if not args:
             print(ui.hint("Specify the quest id to accept."))
             return True
-        quest_id = args[0].lower()
+        query = " ".join(args)
+        quest_id = _resolve_quest_id(player, query)
+        if not quest_id:
+            print(ui.warning("No quest by that id."))
+            return True
         quest = quests.create_quest(quest_id)
         if not quest:
             print(ui.warning("No quest by that id."))
@@ -218,6 +317,13 @@ def handle_command(player: Player, text: str, game_state: GameState) -> bool:
             return True
         message = " ".join(args)
         print(ui.info(f"You say: {message}"))
+        return True
+
+    if verb == "yield":
+        if player.active_duel:
+            player.active_duel.request_yield()
+        else:
+            print(ui.hint("You're not currently engaged in a duel."))
         return True
 
     suggestion = _suggest_command(verb)

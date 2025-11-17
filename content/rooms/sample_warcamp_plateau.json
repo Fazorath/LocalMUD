@@ -1,0 +1,14 @@
+{
+  "id": "warcamp_plateau",
+  "name": "Warcamp Plateau",
+  "description": "Supply tents flap beneath bright gemstone lanterns. Bridgemen spar on dusty practice grounds while chasms carve the horizon.",
+  "exits": {
+    "west": "bridgeman_barracks",
+    "east": "chasm_rim",
+    "south": "storage_bay"
+  },
+  "items": [],
+  "npcs": ["quartermaster"],
+  "enemies": []
+}
+

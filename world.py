@@ -3,8 +3,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Dict, List
 
-from enemies import Enemy, PARSHENDI_SCOUT
-from items import Item, SPHERE_MARK, TRAINING_SPEAR
+from content_loader import content_manager
+from enemies import DEFAULT_ENEMY_TEMPLATES, Enemy, PARSHENDI_SCOUT
+from items import Item, STARTING_ITEMS
 from npcs import NPC, quartermaster_on_talk
 
 
@@ -18,6 +19,18 @@ class Room:
     enemies: List[Enemy] = field(default_factory=list)
     npcs: List[NPC] = field(default_factory=list)
 
+    @classmethod
+    def from_template(cls, data: dict) -> "Room":
+        return cls(
+            id=data["id"],
+            name=data.get("name", data["id"].title()),
+            description=data.get("description", ""),
+            exits=dict(data.get("exits", {})),
+            items=[],
+            enemies=[],
+            npcs=[],
+        )
+
 
 _rooms: Dict[str, Room] = {}
 
@@ -27,8 +40,37 @@ def load_world() -> Dict[str, Room]:
     global _rooms
     if _rooms:
         return _rooms
+    templates = content_manager.rooms or content_manager.load_rooms()
+    if templates:
+        _rooms = {
+            room_id: Room.from_template(room_data) for room_id, room_data in templates.items()
+        }
+        _populate_room_contents()
+    else:
+        _rooms = _build_fallback_world()
+    return _rooms
 
-    _rooms = {
+
+def get_room(room_id: str) -> Room:
+    if not _rooms:
+        load_world()
+    return _rooms[room_id]
+
+
+def add_item(room_id: str, item: Item) -> None:
+    get_room(room_id).items.append(item)
+
+
+def add_enemy(room_id: str, enemy: Enemy) -> None:
+    get_room(room_id).enemies.append(enemy)
+
+
+def add_npc(room_id: str, npc: NPC) -> None:
+    get_room(room_id).npcs.append(npc)
+
+
+def _build_fallback_world() -> Dict[str, Room]:
+    rooms = {
         "bridgeman_barracks": Room(
             id="bridgeman_barracks",
             name="Bridgeman Barracks",
@@ -67,12 +109,10 @@ def load_world() -> Dict[str, Room]:
         ),
     }
 
-    add_item("bridgeman_barracks", SPHERE_MARK)
-    add_item("storage_bay", TRAINING_SPEAR)
-    add_enemy("chasm_rim", PARSHENDI_SCOUT)
-
-    add_npc(
-        "bridgeman_barracks",
+    rooms["bridgeman_barracks"].items.append(STARTING_ITEMS["sphere_mark"])
+    rooms["storage_bay"].items.append(STARTING_ITEMS["training_spear"])
+    rooms["chasm_rim"].enemies.append(PARSHENDI_SCOUT)
+    rooms["bridgeman_barracks"].npcs.append(
         NPC(
             id="sergeant",
             name="Bridge Sergeant",
@@ -82,10 +122,9 @@ def load_world() -> Dict[str, Room]:
                 "The sergeant eyes you, making sure you're not slacking.",
                 "Bridge crews don't survive by taking it easy.",
             ],
-        ),
+        )
     )
-    add_npc(
-        "warcamp_plateau",
+    rooms["warcamp_plateau"].npcs.append(
         NPC(
             id="quartermaster",
             name="Quartermaster",
@@ -96,10 +135,9 @@ def load_world() -> Dict[str, Room]:
                 "Lose my gear and you'll be running extra chasm duty.",
             ],
             on_talk=quartermaster_on_talk,
-        ),
+        )
     )
-    add_npc(
-        "storage_bay",
+    rooms["storage_bay"].npcs.append(
         NPC(
             id="armorer",
             name="Veteran Armorer",
@@ -109,26 +147,46 @@ def load_world() -> Dict[str, Room]:
                 "The armorer polishes a dented breastplate with practiced motions.",
                 "Keep the gear clean and it might just keep you alive.",
             ],
-        ),
+        )
     )
-
-    return _rooms
-
-
-def get_room(room_id: str) -> Room:
-    if not _rooms:
-        load_world()
-    return _rooms[room_id]
+    return rooms
 
 
-def add_item(room_id: str, item: Item) -> None:
-    get_room(room_id).items.append(item)
+def _populate_room_contents() -> None:
+    for room in _rooms.values():
+        template = content_manager.rooms.get(room.id, {})
+        for item_id in template.get("items", []):
+            room.items.append(_create_item(item_id))
+        for enemy_data in template.get("enemies", []):
+            room.enemies.append(_create_enemy(enemy_data))
+        for npc_id in template.get("npcs", []):
+            npc = _create_npc(npc_id)
+            if npc:
+                room.npcs.append(npc)
 
 
-def add_enemy(room_id: str, enemy: Enemy) -> None:
-    get_room(room_id).enemies.append(enemy)
+def _create_item(item_id: str) -> Item:
+    item_template = content_manager.items.get(item_id)
+    if item_template:
+        return Item.from_template(item_template)
+    return STARTING_ITEMS.get(item_id, Item(id=item_id, name=item_id.title(), description=""))
 
 
-def add_npc(room_id: str, npc: NPC) -> None:
-    get_room(room_id).npcs.append(npc)
+def _create_enemy(enemy_data) -> Enemy:
+    if isinstance(enemy_data, dict):
+        return Enemy.from_template(enemy_data)
+    template = DEFAULT_ENEMY_TEMPLATES.get(enemy_data)
+    if template:
+        return Enemy.from_template(template)
+    return PARSHENDI_SCOUT
+
+
+def _create_npc(npc_id: str) -> NPC | None:
+    data = content_manager.npcs.get(npc_id)
+    if not data:
+        return None
+    npc = NPC.from_template(data)
+    if npc.id == "quartermaster":
+        npc.on_talk = quartermaster_on_talk
+    return npc
 

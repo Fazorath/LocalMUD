@@ -3,6 +3,10 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, TYPE_CHECKING
 
+import ui
+
+from content_loader import ContentManager
+
 if TYPE_CHECKING:
     from player import Player
 
@@ -54,19 +58,21 @@ class QuestLog:
 
     def list_active(self) -> str:
         if not self.active_quests:
-            return "No active quests."
-        lines = ["Active quests:"]
+            return ui.warning("No active quests.")
+        lines = [ui.help_heading("Active quests")]
         for quest in self.active_quests.values():
             total = len(quest.steps)
-            lines.append(f"- {quest.name} ({quest.current_step + 1}/{total})")
+            lines.append(ui.bullet(f"{quest.name} ({quest.current_step + 1}/{total})"))
         return "\n".join(lines)
 
     def list_completed(self) -> str:
         if not self.completed_quests:
-            return "No completed quests yet."
-        lines = ["Completed quests:"]
+            return ui.warning("No completed quests yet.")
+        lines = [ui.help_heading("Completed quests")]
         for quest in self.completed_quests.values():
-            lines.append(f"- {quest.name} (Reward: {quest.reward_spheres} mark(s))")
+            lines.append(
+                ui.bullet(f"{quest.name} (Reward: {quest.reward_spheres} mark(s))")
+            )
         return "\n".join(lines)
 
     def describe(self, quest_id: str) -> Optional[str]:
@@ -74,23 +80,28 @@ class QuestLog:
         if not quest:
             return None
         lines = [
-            f"{quest.name}",
-            quest.description,
-            f"Reward: {quest.reward_spheres} mark(s)",
+            ui.help_heading(quest.name),
+            ui.narration(quest.description),
+            ui.section("Reward", f"{quest.reward_spheres} mark(s)"),
         ]
         for idx, step in enumerate(quest.steps):
-            marker = "[x]" if idx < quest.current_step or quest.is_completed else "[ ]"
-            if idx == quest.current_step and not quest.is_completed:
-                marker = "[>]"
-            lines.append(f"{marker} {step}")
+            if quest.is_completed or idx < quest.current_step:
+                marker = ui.success("[x]")
+            elif idx == quest.current_step:
+                marker = ui.info("[>]")
+            else:
+                marker = ui.hint("[ ]")
+            lines.append(f"{marker} {ui.narration(step)}")
         if quest.is_completed:
-            lines.append("Status: Completed")
+            lines.append(ui.success("Status: Completed"))
         else:
-            lines.append(f"Current step: {quest.current_step + 1}/{len(quest.steps)}")
+            lines.append(
+                ui.section("Current step", f"{quest.current_step + 1}/{len(quest.steps)}")
+            )
         return "\n".join(lines)
 
 
-QUEST_TEMPLATES: Dict[str, Dict[str, object]] = {
+DEFAULT_QUEST_TEMPLATES: Dict[str, Dict[str, object]] = {
     "first_errand": {
         "name": "First Errand",
         "description": "Prove your reliability by helping the quartermaster and handling basic supplies.",
@@ -112,6 +123,23 @@ QUEST_TEMPLATES: Dict[str, Dict[str, object]] = {
         "reward_spheres": 3,
     },
 }
+
+
+QUEST_TEMPLATES: Dict[str, Dict[str, object]] = dict(DEFAULT_QUEST_TEMPLATES)
+
+
+def initialize_quests(content_manager: ContentManager) -> None:
+    templates = content_manager.quests or content_manager.load_quests()
+    if not templates:
+        return
+    QUEST_TEMPLATES.clear()
+    for quest_id, data in templates.items():
+        QUEST_TEMPLATES[quest_id] = {
+            "name": data.get("name", quest_id.title()),
+            "description": data.get("description", ""),
+            "steps": list(data.get("steps", [])),
+            "reward_spheres": data.get("reward_spheres", 0),
+        }
 
 
 def create_quest(quest_id: str) -> Optional[Quest]:
@@ -136,7 +164,11 @@ def give_quest_if_available(player: "Player", quest_id: str) -> Optional[str]:
 
 def _reward_player(player: "Player", quest: Quest) -> str:
     player.add_spheres(quest.reward_spheres)
-    return f"Quest complete! You gain {quest.reward_spheres} infused mark(s)."
+    player.change_reputation("bridge_four", 1)
+    return (
+        f"Quest complete! You gain {quest.reward_spheres} infused mark(s). "
+        "Bridge Four acknowledges your effort (+1 reputation)."
+    )
 
 
 def process_room_entry(player: "Player", room_id: str) -> List[str]:

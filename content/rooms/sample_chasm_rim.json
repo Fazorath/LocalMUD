@@ -1,0 +1,21 @@
+{
+  "id": "chasm_rim",
+  "name": "Chasm Rim",
+  "description": "The wind tugs at your clothing as it sweeps over the abyss. A makeshift wooden bridge stretches across the chasm, creaking with each gust.",
+  "exits": {
+    "west": "warcamp_plateau"
+  },
+  "items": [],
+  "npcs": [],
+  "enemies": [
+    {
+      "id": "parshendi_scout",
+      "name": "Parshendi Scout",
+      "hp": 10,
+      "attack_min": 1,
+      "attack_max": 3,
+      "description": "A lone Parshendi scout in carapace armor, scanning the chasms for Alethi movement."
+    }
+  ]
+}
+

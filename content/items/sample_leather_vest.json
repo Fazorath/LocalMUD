@@ -1,0 +1,11 @@
+{
+  "id": "leather_vest",
+  "type": "armor",
+  "name": "Padded Leather Vest",
+  "description": "Layered leather plates sewn over a simple tunic. It won't stop a Shardblade, but it blunts spear tips.",
+  "slot": "chest",
+  "armor_value": 3,
+  "dodge_penalty": 1,
+  "value": 15
+}
+

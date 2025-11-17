@@ -1,0 +1,29 @@
+{
+  "id": "quartermaster_default",
+  "nodes": {
+    "root": {
+      "text": "What do you need, bridgeman?",
+      "choices": [
+        { "id": "ask_work", "text": "Any work for me?" },
+        { "id": "ask_supplies", "text": "I need supplies." },
+        { "id": "goodbye", "text": "Nothing. I'll be going." }
+      ]
+    },
+    "ask_work": {
+      "text": "We've always got errands. Don't lose my gear.",
+      "effects": [
+        { "type": "offer_quest", "quest_id": "first_errand", "advance_step": true }
+      ],
+      "next": "root"
+    },
+    "ask_supplies": {
+      "text": "You and everyone else. Bring back results, then we'll talk.",
+      "next": "root"
+    },
+    "goodbye": {
+      "text": "Storms guide you.",
+      "end": true
+    }
+  }
+}
+

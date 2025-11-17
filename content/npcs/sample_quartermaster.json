@@ -1,0 +1,12 @@
+{
+  "id": "quartermaster",
+  "name": "Quartermaster",
+  "role": "keeps track of gear and spheres",
+  "room_id": "warcamp_plateau",
+  "lines": [
+    "The quartermaster flips through a list of supplies."
+  ],
+  "interactions": ["talk", "trade"],
+  "dialogue_id": "quartermaster_default"
+}
+

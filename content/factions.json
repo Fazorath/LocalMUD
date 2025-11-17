@@ -1,0 +1,13 @@
+{
+  "bridge_four": {
+    "id": "bridge_four",
+    "name": "Bridge Four",
+    "description": "A crew of doomed bridgemen who refuse to die quietly."
+  },
+  "kholin": {
+    "id": "kholin",
+    "name": "House Kholin",
+    "description": "Dalinar Kholin's warcamp holds to impossible standards."
+  }
+}
+

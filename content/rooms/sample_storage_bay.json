@@ -1,0 +1,12 @@
+{
+  "id": "storage_bay",
+  "name": "Supply Storage Bay",
+  "description": "Cracked chullsheds serve as makeshift storage, filled with racks of sparring gear and crates of infused spheres awaiting assignment.",
+  "exits": {
+    "north": "warcamp_plateau"
+  },
+  "items": ["training_spear", "leather_vest"],
+  "npcs": ["armorer"],
+  "enemies": []
+}
+

@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import random
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Set
 
 import quests
 import world
 from enemies import Enemy
-from items import Item, Weapon
+from items import Armor, Item, Weapon
 from jobs import Job, create_jobs
 from quests import QuestLog
 from game_state import GameState
@@ -16,6 +16,22 @@ import ui
 CURRENCY_ITEM_VALUES: Dict[str, int] = {
     "sphere_mark": 1,
 }
+
+
+STANCE_PROFILES = {
+    "aggressive": {"damage": 1.2, "hit": 10, "dodge": -10},
+    "balanced": {"damage": 1.0, "hit": 0, "dodge": 0},
+    "defensive": {"damage": 0.85, "hit": -5, "dodge": 12},
+}
+
+WEAPON_TYPES = ["spear", "sword", "knife", "shardblade", "fists"]
+
+WOUND_THRESHOLDS = [
+    (0.75, {"strength": -1, "dexterity": 0}, "Bruises bloom across your arms."),
+    (0.5, {"strength": -1, "dexterity": -1}, "You wince as deeper aches slow your movements."),
+    (0.25, {"strength": -2, "dexterity": -2}, "Blood loss leaves your limbs trembling."),
+    (0.1, {"strength": -3, "dexterity": -3}, "You can barely stay upright through the pain."),
+]
 
 
 def _expand_alias(alias: str) -> set[str]:
@@ -47,13 +63,30 @@ class Player:
     def __init__(self, name: str, starting_room: str):
         self.name = name or "Bridgeman"
         self.current_room = starting_room
-        self.hp = 20
+        self.strength = 6
+        self.dexterity = 5
+        self.endurance = 6
+        self.willpower = 5
+        self.max_hp = 20 + self.endurance * 2
+        self.current_hp = self.max_hp
         self.inventory: List[Item] = []
         self.equipped_weapon: Optional[Weapon] = None
+        self.equipped_armor: Dict[str, Optional[Armor]] = {"head": None, "chest": None, "legs": None}
+        self.stance: str = "balanced"
         self.quest_log = QuestLog()
         self.jobs: List[Job] = create_jobs()
         self.spheres = 0
         self.last_defeated_enemy_id: Optional[str] = None
+        self.weapon_skill: Dict[str, int] = {weapon_type: 5 for weapon_type in WEAPON_TYPES}
+        self.dodge_skill: int = 5
+        self.armor_rating: int = 0
+        self.dodge_rating: int = 0
+        self.reputation: Dict[str, int] = {}
+        self.active_duel = None
+        self._wound_modifiers: Dict[str, int] = {"strength": 0, "dexterity": 0}
+        self._active_wound_thresholds: Set[float] = set()
+        self.calculate_armor_rating()
+        self.calculate_dodge_rating()
 
     def _room(self) -> world.Room:
         return world.get_room(self.current_room)
@@ -78,7 +111,9 @@ class Player:
         for item in list(room.items):
             if _matches(key, item.id, item.name):
                 room.items.remove(item)
-                currency_value = CURRENCY_ITEM_VALUES.get(item.id, 0)
+                currency_value = CURRENCY_ITEM_VALUES.get(
+                    item.id, item.value if getattr(item, "type", None) == "currency" else 0
+                )
                 messages = []
                 if currency_value:
                     self.add_spheres(currency_value)
@@ -105,6 +140,18 @@ class Player:
                 if isinstance(item, Weapon):
                     self.equipped_weapon = item
                     return ui.success(f"You brace with the {item.name}.")
+                if isinstance(item, Armor):
+                    current = self.equipped_armor.get(item.slot)
+                    if current is item:
+                        return ui.hint(f"The {item.name} is already strapped on.")
+                    self.equipped_armor[item.slot] = item
+                    self.calculate_armor_rating()
+                    self.calculate_dodge_rating()
+                    note = f"{item.slot} armor" if item.slot else "armor"
+                    message = f"You secure the {item.name} ({note})."
+                    if current:
+                        message += f" {current.name} is stowed away."
+                    return ui.success(message)
                 return ui.warning(f"The {item.name} can't be wielded.")
         return ui.warning("That item isn't in your satchel.")
 
@@ -115,7 +162,14 @@ class Player:
             )
         lines = [ui.help_heading("Inventory")]
         for item in self.inventory:
-            marker = " (equipped)" if item is self.equipped_weapon else ""
+            marker = ""
+            if item is self.equipped_weapon:
+                marker = " (equipped weapon)"
+            else:
+                for slot, armor in self.equipped_armor.items():
+                    if item is armor:
+                        marker = f" (equipped {slot})"
+                        break
             lines.append(ui.bullet(f"{item.name}{marker}"))
         lines.append(ui.section("Stormlight marks", str(self.spheres)))
         return "\n".join(lines)
@@ -131,15 +185,20 @@ class Player:
         if not target:
             return ui.warning("No foe by that name stands before you.")
 
-        if self.hp <= 0:
+        if self.current_hp <= 0:
             return ui.warning("Your vision swims. You can't fight in this state.")
 
         if self.equipped_weapon:
-            dmg = random.randint(self.equipped_weapon.damage_min, self.equipped_weapon.damage_max)
+            base = random.randint(self.equipped_weapon.damage_min, self.equipped_weapon.damage_max)
             weapon_desc = self.equipped_weapon.name
+            weapon_type = getattr(self.equipped_weapon, "weapon_type", "fists")
         else:
-            dmg = random.randint(1, 2)
+            base = random.randint(1, 2)
             weapon_desc = "your fists"
+            weapon_type = "fists"
+        stance_profile = STANCE_PROFILES[self.stance]
+        dmg = max(1, int((base + self.effective_strength() // 2) * stance_profile["damage"]))
+        self.gain_weapon_xp(weapon_type, 1)
 
         target.hp -= dmg
         result = [
@@ -156,14 +215,14 @@ class Player:
             return " ".join(result)
 
         retaliation = random.randint(target.attack_min, target.attack_max)
-        self.hp -= retaliation
+        actual = self.take_damage(retaliation)
         result.append(
             ui.warning(
-                f"The {target.name} counters for {retaliation} damage. You have {self.hp} HP remaining."
+                f"The {target.name} counters for {actual} damage. You have {self.current_hp} HP remaining."
             )
         )
 
-        if self.hp <= 0:
+        if self.current_hp <= 0:
             result.append(ui.error("Stormlight fades from your vision as you collapse."))
 
         return " ".join(result)
@@ -197,12 +256,109 @@ class Player:
             npc_line = ", ".join(f"{npc.name} ({npc.id})" for npc in room.npcs)
             lines.append(ui.section("People", f"{npc_line} (talk <name>)"))
 
+        lines.append(
+            ui.section(
+                "Health", f"{self.current_hp}/{self.max_hp} ({self.get_health_state()})"
+            )
+        )
+        lines.append(ui.section("Stance", self.stance.title()))
         lines.append(ui.section("Stormlight marks", str(self.spheres)))
         lines.append(ui.divider())
         return "\n".join(lines)
 
     def add_spheres(self, amount: int) -> None:
         self.spheres += amount
+
+    def calculate_armor_rating(self) -> int:
+        rating = sum(
+            armor.armor_value for armor in self.equipped_armor.values() if armor
+        )
+        self.armor_rating = rating
+        return rating
+
+    def calculate_dodge_rating(self) -> int:
+        penalty = sum(armor.dodge_penalty for armor in self.equipped_armor.values() if armor)
+        stance_bonus = STANCE_PROFILES[self.stance]["dodge"]
+        base = self.effective_dexterity() * 2 + self.dodge_skill
+        self.dodge_rating = max(0, base - penalty + stance_bonus)
+        return self.dodge_rating
+
+    def gain_weapon_xp(self, weapon_type: str, amount: int) -> None:
+        current = self.weapon_skill.get(weapon_type, self.weapon_skill["fists"])
+        self.weapon_skill[weapon_type] = min(100, current + amount)
+
+    def gain_dodge_xp(self, amount: int) -> None:
+        self.dodge_skill = min(100, self.dodge_skill + amount)
+        self.calculate_dodge_rating()
+
+    def take_damage(self, amount: int, armor_bonus: int = 0) -> int:
+        mitigated = max(1, amount - (self.calculate_armor_rating() + armor_bonus))
+        previous_ratio = self.current_hp / self.max_hp if self.max_hp else 0
+        self.current_hp = max(0, self.current_hp - mitigated)
+        self._update_wound_thresholds(previous_ratio)
+        self.calculate_dodge_rating()
+        return mitigated
+
+    def heal(self, amount: int) -> int:
+        previous_ratio = self.current_hp / self.max_hp if self.max_hp else 0
+        healed = min(amount, self.max_hp - self.current_hp)
+        self.current_hp += healed
+        self._update_wound_thresholds(previous_ratio)
+        self.calculate_dodge_rating()
+        return healed
+
+    def get_health_state(self) -> str:
+        if self.max_hp == 0:
+            return "unknown"
+        ratio = self.current_hp / self.max_hp
+        if ratio >= 0.9:
+            return "steady"
+        if ratio >= 0.75:
+            return "bruised"
+        if ratio >= 0.5:
+            return "wounded"
+        if ratio >= 0.25:
+            return "injured"
+        return "critical"
+
+    def change_stance(self, stance: str) -> str:
+        stance = stance.lower()
+        if stance not in STANCE_PROFILES:
+            return ui.warning("Unknown stance. Choose aggressive, balanced, or defensive.")
+        if stance == self.stance:
+            return ui.hint(f"You are already in a {stance} stance.")
+        self.stance = stance
+        self.calculate_dodge_rating()
+        return ui.info(f"You settle into a {stance} stance.")
+
+    def effective_strength(self) -> int:
+        return max(1, self.strength + self._wound_modifiers["strength"])
+
+    def effective_dexterity(self) -> int:
+        return max(1, self.dexterity + self._wound_modifiers["dexterity"])
+
+    def _update_wound_thresholds(self, previous_ratio: float) -> None:
+        if self.max_hp == 0:
+            return
+        current_ratio = self.current_hp / self.max_hp
+        for threshold, mods, message in WOUND_THRESHOLDS:
+            triggered = current_ratio <= threshold
+            previously = threshold in self._active_wound_thresholds
+            if triggered and not previously:
+                self._active_wound_thresholds.add(threshold)
+                self._wound_modifiers["strength"] += mods["strength"]
+                self._wound_modifiers["dexterity"] += mods["dexterity"]
+                print(ui.warning(message))
+            elif not triggered and previously and current_ratio > threshold + 0.05:
+                self._active_wound_thresholds.remove(threshold)
+                self._wound_modifiers["strength"] -= mods["strength"]
+                self._wound_modifiers["dexterity"] -= mods["dexterity"]
+
+    def get_reputation(self, faction_id: str) -> int:
+        return self.reputation.get(faction_id, 0)
+
+    def change_reputation(self, faction_id: str, delta: int) -> None:
+        self.reputation[faction_id] = self.get_reputation(faction_id) + delta
 
     def list_jobs(self) -> str:
         if not self.jobs:
@@ -238,7 +394,8 @@ class Player:
             return ui.warning("No one of note lingers nearby.")
         lines = [ui.help_heading("You notice:")]
         for npc in room.npcs:
-            lines.append(ui.bullet(f"{npc.name} ({npc.id}) - {npc.role}"))
+            interactions = f" [{', '.join(npc.interactions)}]" if npc.interactions else ""
+            lines.append(ui.bullet(f"{npc.name} ({npc.id}) - {npc.role}{interactions}"))
         return "\n".join(lines)
 
     def talk_to(self, npc_key: str, game_state: GameState) -> str:
@@ -260,4 +417,12 @@ class Player:
             lines.extend(ui.info(text) for text in target.on_talk(self, game_state))
 
         return "\n".join(lines)
+
+    def find_npc_in_room(self, npc_key: str) -> Optional[NPC]:
+        key = npc_key.strip().lower()
+        room = self._room()
+        for npc in room.npcs:
+            if _matches(key, npc.id, npc.name):
+                return npc
+        return None
 

@@ -1,0 +1,23 @@
+{
+  "id": "sergeant",
+  "name": "Bridge Sergeant",
+  "role": "gruff overseer of your bridge crew",
+  "room_id": "bridgeman_barracks",
+  "lines": [
+    "The sergeant eyes you, making sure you're not slacking.",
+    "Bridge crews don't survive by taking it easy."
+  ],
+  "interactions": ["talk", "duel"],
+  "combat_profile": {
+    "hp": 28,
+    "weapon": "training_spear",
+    "weapon_skill": {
+      "spear": 35,
+      "fists": 20
+    },
+    "preferred_stances": ["balanced", "defensive"],
+    "aggression": 55,
+    "awareness": 45
+  }
+}
+

@@ -1,0 +1,9 @@
+{
+  "highstorm_warning": {
+    "id": "highstorm_warning",
+    "trigger": "random",
+    "chance": 0.1,
+    "description": "Dark clouds boil on the horizon—word spreads of an approaching highstorm."
+  }
+}
+

@@ -1,0 +1,8 @@
+{
+  "id": "sphere_mark",
+  "type": "currency",
+  "name": "Infused Mark",
+  "description": "A small glass sphere glowing with stormlight.",
+  "value": 1
+}
+

@@ -1,0 +1,10 @@
+{
+  "id": "training_spear",
+  "type": "weapon",
+  "name": "Training Spear",
+  "description": "A dull spear meant for practice.",
+  "damage_min": 1,
+  "damage_max": 4,
+  "weapon_type": "spear"
+}
+

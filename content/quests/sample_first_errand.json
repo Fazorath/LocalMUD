@@ -1,0 +1,12 @@
+{
+  "id": "first_errand",
+  "name": "First Errand",
+  "description": "Basic errands for the warcamp.",
+  "steps": [
+    "Report to the quartermaster.",
+    "Fetch a training spear from storage.",
+    "Deliver the gear back to the barracks."
+  ],
+  "reward_spheres": 2
+}
+
