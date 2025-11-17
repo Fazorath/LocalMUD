@@ -79,12 +79,14 @@ class Player:
         self.last_defeated_enemy_id: Optional[str] = None
         self.weapon_skill: Dict[str, int] = {weapon_type: 5 for weapon_type in WEAPON_TYPES}
         self.dodge_skill: int = 5
+        self.technique_skills: Dict[str, int] = {"block": 5, "feint": 5, "discipline": 5}
         self.armor_rating: int = 0
         self.dodge_rating: int = 0
         self.reputation: Dict[str, int] = {}
         self.active_duel = None
         self._wound_modifiers: Dict[str, int] = {"strength": 0, "dexterity": 0}
         self._active_wound_thresholds: Set[float] = set()
+        self.training_log: Dict[str, str] = {}
         self.calculate_armor_rating()
         self.calculate_dodge_rating()
 
@@ -291,6 +293,15 @@ class Player:
         self.dodge_skill = min(100, self.dodge_skill + amount)
         self.calculate_dodge_rating()
 
+    def gain_block_xp(self, amount: int) -> None:
+        self.technique_skills["block"] = min(100, self.technique_skills["block"] + amount)
+
+    def gain_feint_xp(self, amount: int) -> None:
+        self.technique_skills["feint"] = min(100, self.technique_skills["feint"] + amount)
+
+    def gain_discipline_xp(self, amount: int) -> None:
+        self.technique_skills["discipline"] = min(100, self.technique_skills["discipline"] + amount)
+
     def take_damage(self, amount: int, armor_bonus: int = 0) -> int:
         mitigated = max(1, amount - (self.calculate_armor_rating() + armor_bonus))
         previous_ratio = self.current_hp / self.max_hp if self.max_hp else 0
@@ -306,6 +317,20 @@ class Player:
         self._update_wound_thresholds(previous_ratio)
         self.calculate_dodge_rating()
         return healed
+
+    def apply_training_fatigue(self, amount: int = 1) -> int:
+        if self.current_hp <= 1:
+            return 0
+        fatigue = min(amount, self.current_hp - 1)
+        self.current_hp -= fatigue
+        self.calculate_dodge_rating()
+        return fatigue
+
+    def can_train(self, npc_id: str, time_period: str) -> bool:
+        return self.training_log.get(npc_id) != time_period
+
+    def register_training(self, npc_id: str, time_period: str) -> None:
+        self.training_log[npc_id] = time_period
 
     def get_health_state(self) -> str:
         if self.max_hp == 0:
@@ -370,12 +395,17 @@ class Player:
             lines.append(
                 ui.hint(f"  {job.description} | Reward: {job.reward_spheres} mark(s)")
             )
+            if job.allowed_rooms:
+                locations = ", ".join(job.allowed_rooms)
+                lines.append(ui.hint(f"  Available at: {locations}"))
         return "\n".join(lines)
 
     def perform_job(self, job_id: str) -> str:
         job = next((job for job in self.jobs if job.id == job_id), None)
         if not job:
             return ui.warning("No such job is posted.")
+        if job.allowed_rooms and self.current_room not in job.allowed_rooms:
+            return ui.warning("You need to be at the training facilities to handle that job.")
         if not job.can_do():
             return ui.warning(f"{job.name} is on cooldown for {job.remaining_cooldown} more turn(s).")
         message, reward = job.do_job()

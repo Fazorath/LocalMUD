@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from typing import Callable, List, Optional
 
 import world
+from content_loader import content_manager
 from items import Item
 
 
@@ -19,6 +20,16 @@ class Event:
     description: str
     room_id: Optional[str] = None
     effect: TriggerEffect = lambda player, state: None
+
+    @classmethod
+    def from_template(cls, data: dict) -> "Event":
+        return cls(
+            id=data.get("id", data.get("name", "event")),
+            trigger=data.get("trigger", "random"),
+            chance=float(data.get("chance", 1.0)),
+            description=data.get("description", ""),
+            room_id=data.get("room_id"),
+        )
 
 
 class EventManager:
@@ -50,6 +61,7 @@ class EventManager:
 
 def build_event_manager() -> EventManager:
     manager = EventManager()
+    _register_content_events(manager)
 
     def cremling_effect(player: "Player", _: "GameState") -> None:
         # Flavor only.
@@ -119,4 +131,12 @@ def build_event_manager() -> EventManager:
     )
 
     return manager
+
+
+def _register_content_events(manager: EventManager) -> None:
+    templates = content_manager.events or content_manager.load_events()
+    for event_id, data in templates.items():
+        template = dict(data)
+        template.setdefault("id", event_id)
+        manager.register(Event.from_template(template))
 

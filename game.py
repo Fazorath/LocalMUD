@@ -3,7 +3,17 @@ from commands import handle_command
 from events import build_event_manager
 from game_state import GameState
 from player import Player
+import quests
 import ui
+from content_loader import content_manager
+from dialogue import dialogue_manager
+from factions import faction_manager
+from interactions import (
+    GambleInteraction,
+    InteractionRegistry,
+    TalkInteraction,
+    TradeInteraction,
+)
 
 INTRO = (
     "=== BRIDGE FOUR: SHATTERED PLAINS ===\n"
@@ -11,7 +21,18 @@ INTRO = (
 )
 
 
+def initialize_content() -> None:
+    content_manager.load_all_content()
+    quests.initialize_quests(content_manager)
+    faction_manager.load(content_manager)
+    dialogue_manager.load(content_manager)
+    InteractionRegistry.register("talk", TalkInteraction(dialogue_manager))
+    InteractionRegistry.register("trade", TradeInteraction())
+    InteractionRegistry.register("gamble", GambleInteraction())
+
+
 def main() -> None:
+    initialize_content()
     world.load_world()
     game_state = GameState()
     event_manager = build_event_manager()

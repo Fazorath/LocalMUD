@@ -11,6 +11,7 @@ class Job:
     description: str
     reward_spheres: int
     cooldown_turns: int
+    allowed_rooms: Tuple[str, ...] = ()
     remaining_cooldown: int = 0
 
     def can_do(self) -> bool:
@@ -35,6 +36,7 @@ def create_jobs() -> List[Job]:
             description="Polish the bridgeman spears in the barracks rack.",
             reward_spheres=1,
             cooldown_turns=2,
+            allowed_rooms=("bridgeman_barracks", "training_yard"),
         ),
         Job(
             id="carry_supplies",
@@ -42,6 +44,7 @@ def create_jobs() -> List[Job]:
             description="Haul gemheart crates across the warcamp plateau.",
             reward_spheres=2,
             cooldown_turns=3,
+            allowed_rooms=("warcamp_plateau",),
         ),
         Job(
             id="latrine_duty",
@@ -49,6 +52,31 @@ def create_jobs() -> List[Job]:
             description="Least glorious, but the warcamp needs it done.",
             reward_spheres=1,
             cooldown_turns=4,
+            allowed_rooms=("bridgeman_barracks",),
+        ),
+        Job(
+            id="weapon_cleaning",
+            name="Weapon Cleaning",
+            description="Cleaning spears and quarterstaves keeps the armory in shape.",
+            reward_spheres=1,
+            cooldown_turns=2,
+            allowed_rooms=("training_yard", "bridgeman_barracks"),
+        ),
+        Job(
+            id="dummy_repair",
+            name="Dummy Repair",
+            description="Repair wooden training dummies after sparring sessions.",
+            reward_spheres=1,
+            cooldown_turns=3,
+            allowed_rooms=("training_yard",),
+        ),
+        Job(
+            id="drill_assistant",
+            name="Drill Assistant",
+            description="Assist the drill instructor in teaching formations.",
+            reward_spheres=2,
+            cooldown_turns=4,
+            allowed_rooms=("training_yard",),
         ),
     ]
 

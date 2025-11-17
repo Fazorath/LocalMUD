@@ -28,7 +28,7 @@ FISTS = Weapon(
 
 
 class Duel:
-    def __init__(self, player: Player, opponent: NPC) -> None:
+    def __init__(self, player: Player, opponent: NPC, sparring: bool = False) -> None:
         if not opponent.combat_profile:
             raise ValueError("Opponent lacks a combat profile.")
         self.player = player
@@ -43,6 +43,9 @@ class Duel:
         self.active = True
         self.round = 1
         self._forced_yield = False
+        self.sparring = sparring
+        self._player_hp_snapshot = player.current_hp
+        self._xp_multiplier = 2 if sparring else 1
 
     def run(self) -> None:
         print(ui.banner(f"You square off against {self.opponent.name}."))
@@ -69,6 +72,9 @@ class Duel:
         finally:
             self.player.active_duel = None
             self.active = False
+            if self.sparring:
+                self.player.current_hp = min(self.player.max_hp, self._player_hp_snapshot)
+                self.player.calculate_dodge_rating()
         self._summarize_outcome()
 
     def request_yield(self) -> None:
@@ -97,9 +103,10 @@ class Duel:
         if hp_ratio < 0.2:
             return "dodge"
         roll = random.randint(1, 100)
-        if roll <= self.profile.aggression:
+        aggression = self.profile.aggression // 2 if self.sparring else self.profile.aggression
+        if roll <= aggression:
             return "strike"
-        if roll <= self.profile.aggression + 15:
+        if roll <= aggression + 15:
             return "feint"
         if hp_ratio < 0.5 and roll % 2 == 0:
             return "dodge"
@@ -169,7 +176,7 @@ class Duel:
         if roll <= max(15, hit_score - enemy_dodge):
             damage = self._calculate_player_damage(weapon, player_effect, stance_profile)
             self.enemy_hp = max(0, self.enemy_hp - damage)
-            self.player.gain_weapon_xp(weapon_type, 2)
+            self.player.gain_weapon_xp(weapon_type, 2 * self._xp_multiplier)
             lines.append(
                 ui.success(
                     f"You {action_name} with the {weapon.name}, dealing {damage} damage. "
@@ -177,8 +184,12 @@ class Duel:
                 )
             )
         else:
-            self.player.gain_weapon_xp(weapon_type, 1)
+            self.player.gain_weapon_xp(weapon_type, 1 * self._xp_multiplier)
             lines.append(ui.hint(f"Your {action_name} fails to connect."))
+        if self.sparring and self.enemy_hp <= max(1, self.enemy_max_hp // 5):
+            self.enemy_hp = max(1, self.enemy_hp)
+            self.active = False
+            lines.append(ui.info(f"{self.opponent.name} steps back, ending the spar."))
         return lines
 
     def _enemy_offense(
@@ -199,6 +210,9 @@ class Duel:
         if roll <= max(12, hit_score - player_dodge):
             damage = self._calculate_enemy_damage(enemy_effect, stance_profile)
             taken = self.player.take_damage(damage, armor_bonus=int(player_effect["armor"]))
+            if self.sparring:
+                taken = max(1, taken // 2)
+                self.player.current_hp = max(1, self.player.current_hp)
             lines.append(
                 ui.warning(
                     f"{self.opponent.name} {action_name}s for {taken} damage. "
@@ -206,7 +220,7 @@ class Duel:
                 )
             )
         else:
-            self.player.gain_dodge_xp(1)
+            self.player.gain_dodge_xp(1 * self._xp_multiplier)
             lines.append(ui.info(f"You evade {self.opponent.name}'s {action_name}."))
         return lines
 
@@ -223,6 +237,8 @@ class Duel:
         strength_bonus = self.player.effective_strength()
         damage = (base + max(1, strength_bonus // 2)) * player_effect["damage"]
         damage *= stance_profile["damage"]
+        if self.sparring:
+            damage = max(1, damage // 2)
         return max(1, int(damage))
 
     def _calculate_enemy_damage(
@@ -232,6 +248,8 @@ class Duel:
         strength_bonus = self.enemy_strength // 2
         damage = (base + max(1, strength_bonus)) * enemy_effect["damage"]
         damage *= stance_profile["damage"]
+        if self.sparring:
+            damage = max(1, damage // 2)
         return max(1, int(damage))
 
     def _normalize_player_action(self, player_choice: Dict[str, str]) -> str:
@@ -269,7 +287,7 @@ class Duel:
             print(ui.error("You collapse, the duel lost."))
         elif self.enemy_hp <= 0:
             print(ui.success(f"{self.opponent.name} yields the duel. Victory is yours."))
-            self.player.gain_weapon_xp("fists", 1)
+            self.player.gain_weapon_xp("fists", 1 * self._xp_multiplier)
         elif self._forced_yield:
             print(ui.hint("The duel ends at your request."))
         else:
