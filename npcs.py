@@ -32,6 +32,10 @@ def quartermaster_on_talk(player: "Player", game_state: "GameState") -> List[str
         quest_message = quests.give_quest_if_available(player, "first_errand")
         if quest_message:
             messages.append(quest_message)
+            errand = log.active_quests.get("first_errand")
+            if errand and errand.current_step == 0:
+                errand.advance()
+                messages.append("The quartermaster grunts their approval as you report in.")
             messages.append("Bring me a training spear from storage, then report back.")
         else:
             messages.append("Supplies are handled for now. Check back later.")
@@ -39,6 +43,7 @@ def quartermaster_on_talk(player: "Player", game_state: "GameState") -> List[str
 
     if errand and not errand.is_completed:
         if errand.current_step == 0:
+            errand.advance()
             messages.append("Don't dawdle—head to storage and fetch that spear.")
         elif errand.current_step == 1:
             messages.append("Once you've got it, see the sergeant in the barracks.")

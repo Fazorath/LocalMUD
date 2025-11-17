@@ -127,6 +127,13 @@ def create_quest(quest_id: str) -> Optional[Quest]:
     )
 
 
+def give_quest_if_available(player: "Player", quest_id: str) -> Optional[str]:
+    quest = create_quest(quest_id)
+    if not quest:
+        return None
+    return player.quest_log.add(quest)
+
+
 def _reward_player(player: "Player", quest: Quest) -> str:
     player.add_spheres(quest.reward_spheres)
     return f"Quest complete! You gain {quest.reward_spheres} infused mark(s)."
