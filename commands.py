@@ -21,6 +21,8 @@ HELP_SECTIONS: Dict[str, List[str]] = {
         "inventory / inv - list carried items",
         "equip <item> - wield a weapon",
         "attack <enemy> - engage a foe",
+        "train <npc> - practice drills with an instructor",
+        "spar <npc> - run a supervised sparring match",
         "stance <type> - adopt a combat stance",
         "duel <npc> - challenge an opponent to a duel",
         "yield - concede the current duel",
@@ -85,6 +87,8 @@ KNOWN_COMMANDS = {
     "attack",
     "npcs",
     "talk",
+    "train",
+    "spar",
     "quests",
     "quest",
     "accept",
@@ -112,6 +116,22 @@ def _help_text() -> str:
 def _suggest_command(word: str) -> Optional[str]:
     matches = get_close_matches(word, KNOWN_COMMANDS, n=1, cutoff=0.6)
     return matches[0] if matches else None
+
+
+def _run_registered_interaction(
+    player: Player, npc, interaction_name: str, game_state: GameState
+) -> bool:
+    interaction = InteractionRegistry.get(interaction_name)
+    if not interaction:
+        print(ui.warning("You can't do that here."))
+        return False
+    allowed = [name.lower() for name in (npc.interactions or [])]
+    if interaction_name != "talk" and interaction_name not in allowed:
+        print(ui.warning(f"{npc.name} doesn't seem open to that."))
+        return False
+    for line in interaction.run(player, npc, game_state):
+        print(line)
+    return True
 
 
 def handle_command(player: Player, text: str, game_state: GameState) -> bool:
@@ -202,12 +222,7 @@ def handle_command(player: Player, text: str, game_state: GameState) -> bool:
         if not npc:
             print(ui.warning("No one by that name stands nearby."))
             return True
-        interaction = InteractionRegistry.get("talk")
-        if not interaction:
-            print(ui.warning("They don't seem interested in conversation."))
-            return True
-        for line in interaction.run(player, npc):
-            print(line)
+        _run_registered_interaction(player, npc, "talk", game_state)
         return True
 
     if verb == "duel":
@@ -226,6 +241,19 @@ def handle_command(player: Player, text: str, game_state: GameState) -> bool:
         duel.run()
         return True
 
+    if verb in {"train", "spar"}:
+        if not args:
+            print(ui.hint(f"Name the instructor you wish to {verb}."))
+            return True
+        npc_key = " ".join(args)
+        npc = player.find_npc_in_room(npc_key)
+        if not npc:
+            print(ui.warning("No one by that name stands nearby."))
+            return True
+        if not _run_registered_interaction(player, npc, verb, game_state):
+            return True
+        return True
+
     if verb == "interact":
         if len(args) < 2:
             print(ui.hint("Usage: interact <who> <interaction>"))
@@ -236,16 +264,7 @@ def handle_command(player: Player, text: str, game_state: GameState) -> bool:
         if not npc:
             print(ui.warning("No one by that name stands nearby."))
             return True
-        interaction = InteractionRegistry.get(interaction_name)
-        if not interaction:
-            print(ui.warning("You can't do that here."))
-            return True
-        allowed = [name.lower() for name in (npc.interactions or [])]
-        if interaction_name not in allowed:
-            print(ui.warning(f"{npc.name} doesn't seem open to that."))
-            return True
-        for line in interaction.run(player, npc):
-            print(line)
+        _run_registered_interaction(player, npc, interaction_name, game_state)
         return True
 
     if verb == "quests":

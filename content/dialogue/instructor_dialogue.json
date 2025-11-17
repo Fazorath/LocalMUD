@@ -1,0 +1,24 @@
+{
+  "id": "instructor_dialogue",
+  "nodes": {
+    "root": {
+      "text": "Discipline builds strength. What do you need?",
+      "choices": [
+        { "id": "train", "text": "Put me through the drills." },
+        { "id": "goodbye", "text": "Nothing right now." }
+      ]
+    },
+    "train": {
+      "text": "\"Then follow every shout,\" Varos orders.",
+      "effects": [
+        { "type": "interaction", "name": "train" }
+      ],
+      "next": "root"
+    },
+    "goodbye": {
+      "text": "\"Return when you're ready to sweat.\"",
+      "end": true
+    }
+  }
+}
+

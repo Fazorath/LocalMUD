@@ -1,0 +1,23 @@
+{
+  "id": "drill_instructor",
+  "name": "Drill Instructor Varos",
+  "role": "barks commands relentlessly",
+  "room_id": "training_yard",
+  "lines": [
+    "\"Discipline builds strength,\" Varos snaps."
+  ],
+  "interactions": ["talk", "train"],
+  "dialogue_id": "instructor_dialogue",
+  "combat_profile": {
+    "hp": 35,
+    "weapon": "training_spear",
+    "weapon_skill": {
+      "fists": 30,
+      "spear": 20
+    },
+    "preferred_stances": ["aggressive", "balanced"],
+    "aggression": 50,
+    "awareness": 20
+  }
+}
+

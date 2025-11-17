@@ -4,6 +4,19 @@
     "trigger": "random",
     "chance": 0.1,
     "description": "Dark clouds boil on the horizon—word spreads of an approaching highstorm."
+  },
+  "training_yard_shouts": {
+    "id": "training_yard_shouts",
+    "trigger": "enter_room",
+    "chance": 0.7,
+    "room_id": "training_yard",
+    "description": "Shouts ring from the training yard as another spar begins."
+  },
+  "agility_drill": {
+    "id": "agility_drill",
+    "trigger": "random",
+    "chance": 0.1,
+    "description": "Liftfoot Mara darts between posts in a blur of motion."
   }
 }
 

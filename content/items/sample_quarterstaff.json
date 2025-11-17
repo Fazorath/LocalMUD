@@ -1,0 +1,10 @@
+{
+  "id": "quarterstaff",
+  "type": "weapon",
+  "name": "Training Quarterstaff",
+  "description": "A sturdy length of hardwood used for drills.",
+  "damage_min": 1,
+  "damage_max": 3,
+  "weapon_type": "spear"
+}
+

@@ -5,7 +5,8 @@
   "exits": {
     "west": "bridgeman_barracks",
     "east": "chasm_rim",
-    "south": "storage_bay"
+    "south": "storage_bay",
+    "north": "training_yard"
   },
   "items": [],
   "npcs": ["quartermaster"],

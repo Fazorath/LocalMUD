@@ -1,0 +1,32 @@
+{
+  "id": "spearmaster_dialogue",
+  "nodes": {
+    "root": {
+      "text": "You seek mastery of the spear?",
+      "choices": [
+        { "id": "train", "text": "I need drills." },
+        { "id": "spar", "text": "Let's spar." },
+        { "id": "goodbye", "text": "Another time." }
+      ]
+    },
+    "train": {
+      "text": "\"Then grip it tighter,\" Tevlek says.",
+      "effects": [
+        { "type": "interaction", "name": "train" }
+      ],
+      "next": "root"
+    },
+    "spar": {
+      "text": "\"Show me your guard,\" he says, stepping into the circle.",
+      "effects": [
+        { "type": "interaction", "name": "spar" }
+      ],
+      "next": "root"
+    },
+    "goodbye": {
+      "text": "\"Stay storm-ready.\"",
+      "end": true
+    }
+  }
+}
+

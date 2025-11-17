@@ -1,0 +1,24 @@
+{
+  "id": "agility_dialogue",
+  "nodes": {
+    "root": {
+      "text": "Footwork keeps you alive when strength fails.",
+      "choices": [
+        { "id": "train", "text": "Teach me the steps." },
+        { "id": "goodbye", "text": "I'll return later." }
+      ]
+    },
+    "train": {
+      "text": "\"Chase the wind with me,\" Mara says, darting ahead.",
+      "effects": [
+        { "type": "interaction", "name": "train" }
+      ],
+      "next": "root"
+    },
+    "goodbye": {
+      "text": "\"Then keep your toes light.\"",
+      "end": true
+    }
+  }
+}
+

@@ -107,7 +107,26 @@ def _build_fallback_world() -> Dict[str, Room]:
             ),
             exits={"north": "warcamp_plateau"},
         ),
+        "training_yard": Room(
+            id="training_yard",
+            name="Combat Training Yard",
+            description=(
+                "A packed-earth arena ringed with wooden posts. Spears thud against dummies "
+                "while instructors watch every movement."
+            ),
+            exits={"south": "warcamp_plateau"},
+        ),
     }
+
+    rooms["warcamp_plateau"].exits["north"] = "training_yard"
+    rooms["training_yard"].exits["south"] = "warcamp_plateau"
+    rooms["training_yard"].items.append(
+        Item(
+            id="training_dummy",
+            name="Training Dummy",
+            description="A battered wooden post wrapped in hemp and leather.",
+        )
+    )
 
     rooms["bridgeman_barracks"].items.append(STARTING_ITEMS["sphere_mark"])
     rooms["storage_bay"].items.append(STARTING_ITEMS["training_spear"])

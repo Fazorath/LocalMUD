@@ -11,8 +11,10 @@ from factions import faction_manager
 from interactions import (
     GambleInteraction,
     InteractionRegistry,
+    SparInteraction,
     TalkInteraction,
     TradeInteraction,
+    TrainingInteraction,
 )
 
 INTRO = (
@@ -29,6 +31,16 @@ def initialize_content() -> None:
     InteractionRegistry.register("talk", TalkInteraction(dialogue_manager))
     InteractionRegistry.register("trade", TradeInteraction())
     InteractionRegistry.register("gamble", GambleInteraction())
+    InteractionRegistry.register("train", TrainingInteraction())
+    InteractionRegistry.register("spar", SparInteraction())
+
+    def _run_dialogue_interaction(name, player, npc, game_state):
+        interaction = InteractionRegistry.get(name)
+        if not interaction:
+            return [ui.warning("They can't help with that right now.")]
+        return interaction.run(player, npc, game_state)
+
+    dialogue_manager.set_interaction_runner(_run_dialogue_interaction)
 
 
 def main() -> None:

@@ -36,7 +36,6 @@ def create_jobs() -> List[Job]:
             description="Polish the bridgeman spears in the barracks rack.",
             reward_spheres=1,
             cooldown_turns=2,
-            allowed_rooms=("bridgeman_barracks", "training_yard"),
         ),
         Job(
             id="carry_supplies",
@@ -44,7 +43,6 @@ def create_jobs() -> List[Job]:
             description="Haul gemheart crates across the warcamp plateau.",
             reward_spheres=2,
             cooldown_turns=3,
-            allowed_rooms=("warcamp_plateau",),
         ),
         Job(
             id="latrine_duty",
@@ -52,7 +50,6 @@ def create_jobs() -> List[Job]:
             description="Least glorious, but the warcamp needs it done.",
             reward_spheres=1,
             cooldown_turns=4,
-            allowed_rooms=("bridgeman_barracks",),
         ),
         Job(
             id="weapon_cleaning",

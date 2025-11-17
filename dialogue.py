@@ -1,13 +1,15 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, TYPE_CHECKING
+from typing import Callable, Dict, List, Optional, TYPE_CHECKING
 
 import quests
 import ui
 from content_loader import ContentManager
 
 if TYPE_CHECKING:
+    from game_state import GameState
+    from npcs import NPC
     from player import Player
 
 
@@ -64,6 +66,9 @@ class DialogueTree:
 class DialogueManager:
     def __init__(self) -> None:
         self.trees: Dict[str, DialogueTree] = {}
+        self._interaction_runner: Optional[
+            Callable[[str, "Player", "NPC", "GameState"], List[str]]
+        ] = None
 
     def load(self, content_manager: ContentManager) -> None:
         self.trees = {
@@ -76,6 +81,11 @@ class DialogueManager:
             return None
         return self.trees.get(tree_id)
 
+    def set_interaction_runner(
+        self, runner: Callable[[str, "Player", "NPC", "GameState"], List[str]]
+    ) -> None:
+        self._interaction_runner = runner
+
     def format_node(self, npc_name: str, node: DialogueNode) -> List[str]:
         lines = [ui.dialogue(npc_name, node.text)]
         return lines
@@ -86,7 +96,9 @@ class DialogueManager:
             lines.append(ui.bullet(f"{index}. {choice.text} ({choice.id})"))
         return lines
 
-    def apply_effects(self, node: DialogueNode, player: "Player") -> List[str]:
+    def apply_effects(
+        self, node: DialogueNode, player: "Player", npc: "NPC", game_state: "GameState"
+    ) -> List[str]:
         results: List[str] = []
         for effect in node.effects:
             effect_type = effect.get("type")
@@ -111,21 +123,32 @@ class DialogueManager:
                             f"Your standing with {faction_id.replace('_', ' ').title()} changes by {amount}."
                         )
                     )
+            elif effect_type == "interaction":
+                interaction_name = effect.get("name")
+                if interaction_name and self._interaction_runner:
+                    results.extend(
+                        self._interaction_runner(interaction_name, player, npc, game_state)
+                    )
         return results
 
     def resolve_choice(
-        self, tree: DialogueTree, choice_id: str, player: "Player", npc_name: str
+        self,
+        tree: DialogueTree,
+        choice_id: str,
+        player: "Player",
+        npc: "NPC",
+        game_state: "GameState",
     ) -> List[str]:
         lines: List[str] = []
         target_node = tree.get_node(choice_id)
         if not target_node:
             return [ui.warning("The conversation trails off awkwardly.")]
-        lines.extend(self.format_node(npc_name, target_node))
-        lines.extend(self.apply_effects(target_node, player))
+        lines.extend(self.format_node(npc.name, target_node))
+        lines.extend(self.apply_effects(target_node, player, npc, game_state))
         if target_node.next:
             follow_up = tree.get_node(target_node.next)
             if follow_up:
-                lines.extend(self.format_node(npc_name, follow_up))
+                lines.extend(self.format_node(npc.name, follow_up))
         return lines
 
 

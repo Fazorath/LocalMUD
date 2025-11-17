@@ -1,0 +1,22 @@
+{
+  "id": "agility_mentor",
+  "name": "Liftfoot Mara",
+  "role": "teaches dodging and footwork",
+  "room_id": "training_yard",
+  "lines": [
+    "\"Feet first, thoughts second,\" Mara says with a grin."
+  ],
+  "interactions": ["talk", "train"],
+  "dialogue_id": "agility_dialogue",
+  "combat_profile": {
+    "hp": 30,
+    "weapon": "dagger",
+    "weapon_skill": {
+      "knife": 40
+    },
+    "preferred_stances": ["defensive"],
+    "aggression": 10,
+    "awareness": 50
+  }
+}
+

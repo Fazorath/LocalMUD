@@ -1,0 +1,22 @@
+{
+  "id": "spearmaster",
+  "name": "Spearmaster Tevlek",
+  "role": "grizzled spear veteran",
+  "room_id": "training_yard",
+  "lines": [
+    "\"Grip the haft like you mean to live,\" Tevlek growls."
+  ],
+  "interactions": ["talk", "train", "spar"],
+  "dialogue_id": "spearmaster_dialogue",
+  "combat_profile": {
+    "hp": 40,
+    "weapon": "training_spear",
+    "weapon_skill": {
+      "spear": 60
+    },
+    "preferred_stances": ["balanced", "defensive"],
+    "aggression": 30,
+    "awareness": 30
+  }
+}
+

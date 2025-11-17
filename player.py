@@ -322,7 +322,9 @@ class Player:
         if self.current_hp <= 1:
             return 0
         fatigue = min(amount, self.current_hp - 1)
+        previous_ratio = self.current_hp / self.max_hp if self.max_hp else 0
         self.current_hp -= fatigue
+        self._update_wound_thresholds(previous_ratio)
         self.calculate_dodge_rating()
         return fatigue
 
@@ -405,7 +407,8 @@ class Player:
         if not job:
             return ui.warning("No such job is posted.")
         if job.allowed_rooms and self.current_room not in job.allowed_rooms:
-            return ui.warning("You need to be at the training facilities to handle that job.")
+            locations = ", ".join(job.allowed_rooms)
+            return ui.warning(f"{job.name} must be handled at: {locations}.")
         if not job.can_do():
             return ui.warning(f"{job.name} is on cooldown for {job.remaining_cooldown} more turn(s).")
         message, reward = job.do_job()

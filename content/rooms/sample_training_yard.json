@@ -1,0 +1,12 @@
+{
+  "id": "training_yard",
+  "name": "Combat Training Yard",
+  "description": "A packed-earth arena surrounded by wooden posts and training dummies. Spears clatter and shouts echo as bridgemen drill under watchful eyes.",
+  "exits": {
+    "south": "warcamp_plateau"
+  },
+  "items": ["training_dummy"],
+  "npcs": ["spearmaster", "drill_instructor", "agility_mentor"],
+  "enemies": []
+}
+

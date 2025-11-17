@@ -1,0 +1,10 @@
+{
+  "id": "dagger",
+  "type": "weapon",
+  "name": "Drill Dagger",
+  "description": "A blunted practice dagger meant for close-in drills.",
+  "damage_min": 1,
+  "damage_max": 3,
+  "weapon_type": "knife"
+}
+

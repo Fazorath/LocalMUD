@@ -109,6 +109,7 @@ class TrainingInteraction:
             "message": "You repeat blocking forms until your arms ache.",
             "weapon_type": "spear",
             "weapon_xp": (1, 3),
+            "dodge_xp": (1, 2),
             "block": 1,
             "discipline": 1,
         },
