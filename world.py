@@ -5,6 +5,7 @@ from typing import Dict, List
 
 from enemies import Enemy, PARSHENDI_SCOUT
 from items import Item, SPHERE_MARK, TRAINING_SPEAR
+from npcs import NPC, quartermaster_on_talk
 
 
 @dataclass
@@ -15,6 +16,7 @@ class Room:
     exits: Dict[str, str]
     items: List[Item] = field(default_factory=list)
     enemies: List[Enemy] = field(default_factory=list)
+    npcs: List[NPC] = field(default_factory=list)
 
 
 _rooms: Dict[str, Room] = {}
@@ -69,6 +71,47 @@ def load_world() -> Dict[str, Room]:
     add_item("storage_bay", TRAINING_SPEAR)
     add_enemy("chasm_rim", PARSHENDI_SCOUT)
 
+    add_npc(
+        "bridgeman_barracks",
+        NPC(
+            id="sergeant",
+            name="Bridge Sergeant",
+            role="gruff overseer of your bridge crew",
+            room_id="bridgeman_barracks",
+            lines=[
+                "The sergeant eyes you, making sure you're not slacking.",
+                "Bridge crews don't survive by taking it easy.",
+            ],
+        ),
+    )
+    add_npc(
+        "warcamp_plateau",
+        NPC(
+            id="quartermaster",
+            name="Quartermaster",
+            role="keeps track of gear and spheres",
+            room_id="warcamp_plateau",
+            lines=[
+                "The quartermaster flips through a list of supplies.",
+                "Lose my gear and you'll be running extra chasm duty.",
+            ],
+            on_talk=quartermaster_on_talk,
+        ),
+    )
+    add_npc(
+        "storage_bay",
+        NPC(
+            id="armorer",
+            name="Veteran Armorer",
+            role="patches dented plate and keeps blades sharp",
+            room_id="storage_bay",
+            lines=[
+                "The armorer polishes a dented breastplate with practiced motions.",
+                "Keep the gear clean and it might just keep you alive.",
+            ],
+        ),
+    )
+
     return _rooms
 
 
@@ -84,4 +127,8 @@ def add_item(room_id: str, item: Item) -> None:
 
 def add_enemy(room_id: str, enemy: Enemy) -> None:
     get_room(room_id).enemies.append(enemy)
+
+
+def add_npc(room_id: str, npc: NPC) -> None:
+    get_room(room_id).npcs.append(npc)
 
