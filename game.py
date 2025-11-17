@@ -1,9 +1,9 @@
-import quests
 import world
 from commands import handle_command
 from events import build_event_manager
 from game_state import GameState
 from player import Player
+import ui
 
 INTRO = (
     "=== BRIDGE FOUR: SHATTERED PLAINS ===\n"
@@ -16,22 +16,23 @@ def main() -> None:
     game_state = GameState()
     event_manager = build_event_manager()
 
-    print(INTRO)
-    name = input("What do the men call you? ").strip() or "Bridgeman"
+    print(ui.banner(INTRO))
+    name = input(ui.info("What do the men call you? ")).strip() or "Bridgeman"
     player = Player(name=name, starting_room="bridgeman_barracks")
-    initial_quest = quests.create_quest("first_errand")
-    if initial_quest:
-        print(player.quest_log.add(initial_quest))
 
-    print("\nYou tighten your bridge-crew uniform and take stock.\n")
+    print()
+    print(ui.narration("You tighten your bridge-crew uniform and take stock."))
+    print()
     print(player.describe_room())
     event_manager.trigger_enter_room(player, game_state, player.current_room)
 
     while True:
         try:
-            raw_command = input("\n> ")
+            current_room = world.get_room(player.current_room).name
+            raw_command = input(ui.command_prompt(current_room, game_state.time_of_day, player.spheres))
         except (EOFError, KeyboardInterrupt):
-            print("\nThe winds quiet as you leave the command tent.")
+            print()
+            print(ui.info("The winds quiet as you leave the command tent."))
             break
 
         previous_room = player.current_room
