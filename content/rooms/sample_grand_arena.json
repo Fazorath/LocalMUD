@@ -1,0 +1,12 @@
+{
+  "id": "grand_arena",
+  "name": "Grand Arena",
+  "description": "A vast stone amphitheater ringed by banners of Alethi highprinces. Crowds gather to witness sanctioned combat, cheers echoing off carved rock.",
+  "exits": {
+    "south": "training_yard"
+  },
+  "items": [],
+  "npcs": ["arena_master", "arena_announcer", "gambler", "arena_medic"],
+  "enemies": []
+}
+

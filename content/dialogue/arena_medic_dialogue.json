@@ -1,0 +1,24 @@
+{
+  "id": "arena_medic_dialogue",
+  "nodes": {
+    "root": {
+      "text": "\"Bruises or worse?\" Doran asks, flexing a roll of bandages.",
+      "choices": [
+        { "id": "heal", "text": "Patch me up." },
+        { "id": "goodbye", "text": "I'm fine." }
+      ]
+    },
+    "heal": {
+      "text": "\"Hold steady.\"",
+      "effects": [
+        { "type": "interaction", "name": "heal" }
+      ],
+      "next": "root"
+    },
+    "goodbye": {
+      "text": "\"Then don't bleed on my floor.\"",
+      "end": true
+    }
+  }
+}
+

@@ -3,7 +3,9 @@ from __future__ import annotations
 from difflib import get_close_matches
 from typing import Dict, List, Optional
 
+import arena_rewards
 import quests
+from arena_engine import ArenaMatch
 from duel import Duel
 from game_state import GameState
 from player import Player
@@ -25,6 +27,7 @@ HELP_SECTIONS: Dict[str, List[str]] = {
         "spar <npc> - run a supervised sparring match",
         "stance <type> - adopt a combat stance",
         "duel <npc> - challenge an opponent to a duel",
+        "fight <rank> - enter an arena bout",
         "yield - concede the current duel",
     ],
     "People & Quests": [
@@ -38,6 +41,10 @@ HELP_SECTIONS: Dict[str, List[str]] = {
         "jobs - list daily jobs",
         "job <id> - attempt a job",
         "say <message> - speak aloud",
+        "arena - view arena status",
+        "join arena - enlist for a bout",
+        "bet <fighter> <amount> - wager on arena fights",
+        "collect - claim stored arena winnings",
         "interact <who> <interaction> - use special actions like trade",
     ],
     "Meta": [
@@ -89,6 +96,11 @@ KNOWN_COMMANDS = {
     "talk",
     "train",
     "spar",
+    "arena",
+    "join",
+    "fight",
+    "bet",
+    "collect",
     "quests",
     "quest",
     "accept",
@@ -132,6 +144,60 @@ def _run_registered_interaction(
     for line in interaction.run(player, npc, game_state):
         print(line)
     return True
+
+
+def _ensure_arena_location(player: Player) -> bool:
+    if player.current_room != "grand_arena":
+        print(ui.warning("You need to be at the grand arena for that."))
+        return False
+    return True
+
+
+def _show_arena_panel(player: Player) -> None:
+    print(arena_rewards.format_arena_panel(player))
+
+
+def _resolve_bet(game_state: GameState, player: Player, player_victory: bool) -> None:
+    bet = game_state.arena_bet
+    if not bet:
+        return
+    target = bet.get("fighter")
+    amount = bet.get("amount", 0)
+    if target == "challenger" and player_victory:
+        winnings = amount * 2
+        player.add_arena_winnings(winnings)
+        print(ui.success(f"Thresh pays out {winnings} marks on your win."))
+    elif target == "opponent" and not player_victory:
+        winnings = amount * 2
+        player.add_arena_winnings(winnings)
+        print(ui.success(f"Thresh pays out {winnings} marks on the upset."))
+    else:
+        print(ui.hint("Your wager evaporates into the cheering crowd."))
+    game_state.arena_bet = None
+
+
+def _start_arena_match(player: Player, game_state: GameState, rank: str) -> None:
+    match = ArenaMatch(player, rank)
+    result = match.run()
+    print(result["message"])
+    game_state.arena_queue_ready = False
+    victory = result["victory"]
+    if victory:
+        fame_gain = result["fame"]
+        if fame_gain:
+            player.add_fame(fame_gain)
+            print(ui.success(f"Fame +{fame_gain}."))
+        mark_reward = result["marks"]
+        if mark_reward:
+            player.add_arena_winnings(mark_reward)
+            print(ui.success(f"Arena purse stored: {mark_reward} marks. Use 'collect' later."))
+        item = result.get("item")
+        if item:
+            player.inventory.append(item)
+            print(ui.success(f"You receive {item.name}."))
+    else:
+        print(ui.warning("Medics hurry you from the sands."))
+    _resolve_bet(game_state, player, victory)
 
 
 def handle_command(player: Player, text: str, game_state: GameState) -> bool:
@@ -225,6 +291,12 @@ def handle_command(player: Player, text: str, game_state: GameState) -> bool:
         _run_registered_interaction(player, npc, "talk", game_state)
         return True
 
+    if verb == "arena":
+        if not _ensure_arena_location(player):
+            return True
+        _show_arena_panel(player)
+        return True
+
     if verb == "duel":
         if not args:
             print(ui.hint("Name the opponent you wish to challenge."))
@@ -265,6 +337,73 @@ def handle_command(player: Player, text: str, game_state: GameState) -> bool:
             print(ui.warning("No one by that name stands nearby."))
             return True
         _run_registered_interaction(player, npc, interaction_name, game_state)
+        return True
+
+    if verb == "join":
+        if not args or args[0].lower() != "arena":
+            print(ui.hint("Usage: join arena"))
+            return True
+        if not _ensure_arena_location(player):
+            return True
+        if game_state.arena_queue_ready:
+            print(ui.hint("You're already queued for the next bout."))
+            return True
+        game_state.arena_queue_ready = True
+        print(ui.success("Your name is inked onto the arena roster."))
+        return True
+
+    if verb == "fight":
+        if not args:
+            print(ui.hint("Specify the arena rank: bronze, silver, gold, champion."))
+            return True
+        if not _ensure_arena_location(player):
+            return True
+        rank = args[0].lower()
+        if rank not in {"bronze", "silver", "gold", "champion"}:
+            print(ui.warning("Unknown arena tier."))
+            return True
+        if not player.can_access_arena_rank(rank):
+            print(ui.warning("Earn more fame before attempting that tier."))
+            return True
+        if not game_state.arena_queue_ready:
+            print(ui.hint("Join the queue first (join arena)."))
+            return True
+        _start_arena_match(player, game_state, rank)
+        return True
+
+    if verb == "bet":
+        if len(args) < 2:
+            print(ui.hint("Usage: bet <challenger|opponent> <amount>"))
+            return True
+        if not _ensure_arena_location(player):
+            return True
+        fighter = args[0].lower()
+        if fighter not in {"challenger", "opponent"}:
+            print(ui.warning("Bet on 'challenger' or 'opponent'."))
+            return True
+        try:
+            amount = int(args[1])
+        except ValueError:
+            print(ui.warning("Bet amount must be numeric."))
+            return True
+        if amount <= 0:
+            print(ui.warning("Bet amount must be positive."))
+            return True
+        if player.spheres < amount:
+            print(ui.warning("You don't have enough marks to cover that bet."))
+            return True
+        if game_state.arena_bet:
+            print(ui.warning("You already have a wager pending."))
+            return True
+        player.spheres -= amount
+        game_state.arena_bet = {"fighter": fighter, "amount": amount}
+        print(ui.success(f"You wager {amount} mark(s) on the {fighter}."))
+        return True
+
+    if verb == "collect":
+        if not _ensure_arena_location(player):
+            return True
+        print(player.collect_arena_winnings())
         return True
 
     if verb == "quests":

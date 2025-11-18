@@ -1,0 +1,12 @@
+{
+  "id": "arena_master",
+  "name": "Arena Master Ralven",
+  "role": "stewards the arena roster and rewards",
+  "room_id": "grand_arena",
+  "lines": [
+    "\"Discipline and spectacle keep the warcamp sharp,\" Ralven says."
+  ],
+  "interactions": ["talk"],
+  "dialogue_id": "arena_master_dialogue"
+}
+

@@ -1,0 +1,24 @@
+{
+  "id": "gambler_dialogue",
+  "nodes": {
+    "root": {
+      "text": "\"Bets keep the arena humming,\" Thresh says. \"Care to wager?\"",
+      "choices": [
+        { "id": "bet", "text": "How do I place a bet?" },
+        { "id": "goodbye", "text": "Not right now." }
+      ]
+    },
+    "bet": {
+      "text": "\"Tell me challenger or opponent and your stake. House pays double.\"",
+      "effects": [
+        { "type": "interaction", "name": "bet_prompt" }
+      ],
+      "next": "root"
+    },
+    "goodbye": {
+      "text": "\"Come back when your marks itch.\"",
+      "end": true
+    }
+  }
+}
+

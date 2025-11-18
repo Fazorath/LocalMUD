@@ -9,8 +9,12 @@ from content_loader import content_manager
 from dialogue import dialogue_manager
 from factions import faction_manager
 from interactions import (
+    ArenaPanelInteraction,
+    BetPromptInteraction,
     GambleInteraction,
+    HealInteraction,
     InteractionRegistry,
+    JoinArenaInteraction,
     SparInteraction,
     TalkInteraction,
     TradeInteraction,
@@ -33,6 +37,12 @@ def initialize_content() -> None:
     InteractionRegistry.register("gamble", GambleInteraction())
     InteractionRegistry.register("train", TrainingInteraction())
     InteractionRegistry.register("spar", SparInteraction())
+    InteractionRegistry.register("arena_panel", ArenaPanelInteraction())
+    InteractionRegistry.register("join_arena", JoinArenaInteraction())
+    bet_prompt = BetPromptInteraction()
+    InteractionRegistry.register("bet_prompt", bet_prompt)
+    InteractionRegistry.register("bet", bet_prompt)
+    InteractionRegistry.register("heal", HealInteraction())
 
     def _run_dialogue_interaction(name, player, npc, game_state):
         interaction = InteractionRegistry.get(name)

@@ -116,16 +116,65 @@ def _build_fallback_world() -> Dict[str, Room]:
             ),
             exits={"south": "warcamp_plateau"},
         ),
+        "grand_arena": Room(
+            id="grand_arena",
+            name="Grand Arena",
+            description=(
+                "A vast stone amphitheater ringed by banners of Alethi highprinces. "
+                "Crowds gather to witness sanctioned combat, cheers echoing off carved rock."
+            ),
+            exits={"south": "training_yard"},
+        ),
     }
 
     rooms["warcamp_plateau"].exits["north"] = "training_yard"
     rooms["training_yard"].exits["south"] = "warcamp_plateau"
+    rooms["training_yard"].exits["north"] = "grand_arena"
+    rooms["grand_arena"].exits["south"] = "training_yard"
     rooms["training_yard"].items.append(
         Item(
             id="training_dummy",
             name="Training Dummy",
             description="A battered wooden post wrapped in hemp and leather.",
         )
+    )
+    rooms["grand_arena"].npcs.extend(
+        [
+            NPC(
+                id="arena_master",
+                name="Arena Master Ralven",
+                role="stewards the arena roster and rewards",
+                room_id="grand_arena",
+                lines=[
+                    "\"Discipline and spectacle keep the warcamp sharp,\" Ralven says."
+                ],
+                interactions=["talk"],
+            ),
+            NPC(
+                id="arena_announcer",
+                name="Arena Announcer Seyla",
+                role="stirs the crowd with booming introductions",
+                room_id="grand_arena",
+                lines=["\"Another challenger dares the sands!\" Seyla calls."],
+                interactions=["talk"],
+            ),
+            NPC(
+                id="gambler",
+                name="Gambler Thresh",
+                role="takes bets on arena hopefuls",
+                room_id="grand_arena",
+                lines=["\"Odds favor the bold,\" Thresh whispers."],
+                interactions=["talk"],
+            ),
+            NPC(
+                id="arena_medic",
+                name="Arena Medic Doran",
+                role="patches up bruised challengers",
+                room_id="grand_arena",
+                lines=["\"Hold still, this will sting,\" Doran mutters."],
+                interactions=["talk", "heal"],
+            ),
+        ]
     )
 
     rooms["bridgeman_barracks"].items.append(STARTING_ITEMS["sphere_mark"])

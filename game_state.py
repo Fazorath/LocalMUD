@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Optional
+
 
 TIME_SLICES = ["morning", "afternoon", "evening", "night"]
 
@@ -10,6 +12,8 @@ class GameState:
         self.time_of_day = TIME_SLICES[0]
         self.highstorm_warning_active = False
         self._time_index = 0
+        self.arena_queue_ready = False
+        self.arena_bet: Optional[dict] = None
 
     def advance_turn(self) -> None:
         self.turn_count += 1

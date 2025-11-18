@@ -1,0 +1,32 @@
+{
+  "id": "arena_master_dialogue",
+  "nodes": {
+    "root": {
+      "text": "Ralven studies you with a ledger in hand. \"Here for sanctioned glory?\"",
+      "choices": [
+        { "id": "join", "text": "Sign me up for the next bout." },
+        { "id": "report", "text": "Ask about ranks and rewards." },
+        { "id": "goodbye", "text": "Another time." }
+      ]
+    },
+    "join": {
+      "text": "\"Very well. Seyla will announce when you're ready.\"",
+      "effects": [
+        { "type": "interaction", "name": "join_arena" }
+      ],
+      "next": "root"
+    },
+    "report": {
+      "text": "\"Fame is earned, not gifted. Climb from Bronze upward.\"",
+      "effects": [
+        { "type": "interaction", "name": "arena_panel" }
+      ],
+      "next": "root"
+    },
+    "goodbye": {
+      "text": "\"Return when your spear-hand itches.\"",
+      "end": true
+    }
+  }
+}
+

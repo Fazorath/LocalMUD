@@ -3,6 +3,7 @@ from __future__ import annotations
 import random
 from typing import Dict, List, Optional, Set
 
+import arena_rewards
 import quests
 import world
 from enemies import Enemy
@@ -87,6 +88,9 @@ class Player:
         self._wound_modifiers: Dict[str, int] = {"strength": 0, "dexterity": 0}
         self._active_wound_thresholds: Set[float] = set()
         self.training_log: Dict[str, str] = {}
+        self.fame = 0
+        self.arena_rank = "Bronze"
+        self.arena_winnings = 0
         self.calculate_armor_rating()
         self.calculate_dodge_rating()
 
@@ -334,6 +338,18 @@ class Player:
     def register_training(self, npc_id: str, time_period: str) -> None:
         self.training_log[npc_id] = time_period
 
+    def receive_medic_heal(self, cost: int = 1) -> str:
+        if self.current_hp >= self.max_hp:
+            return ui.hint("You don't need bandages right now.")
+        if cost and self.spheres < cost:
+            return ui.warning("You lack the marks to pay the medic.")
+        if cost:
+            self.spheres -= cost
+        healed = self.max_hp - self.current_hp
+        self.current_hp = self.max_hp
+        self.calculate_dodge_rating()
+        return ui.success(f"Doran seals your wounds (+{healed} HP).")
+
     def get_health_state(self) -> str:
         if self.max_hp == 0:
             return "unknown"
@@ -386,6 +402,26 @@ class Player:
 
     def change_reputation(self, faction_id: str, delta: int) -> None:
         self.reputation[faction_id] = self.get_reputation(faction_id) + delta
+
+    def add_fame(self, amount: int) -> None:
+        if amount <= 0:
+            return
+        self.fame += amount
+        arena_rewards.upgrade_rank_if_needed(self)
+
+    def add_arena_winnings(self, marks: int) -> None:
+        self.arena_winnings += marks
+
+    def collect_arena_winnings(self) -> str:
+        if self.arena_winnings <= 0:
+            return ui.hint("No arena purses await you.")
+        self.add_spheres(self.arena_winnings)
+        payout = self.arena_winnings
+        self.arena_winnings = 0
+        return ui.success(f"You collect {payout} marks from the arena steward.")
+
+    def can_access_arena_rank(self, rank: str) -> bool:
+        return arena_rewards.can_access_rank(self, rank)
 
     def list_jobs(self) -> str:
         if not self.jobs:

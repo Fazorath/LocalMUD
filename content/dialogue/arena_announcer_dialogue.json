@@ -1,0 +1,24 @@
+{
+  "id": "arena_announcer_dialogue",
+  "nodes": {
+    "root": {
+      "text": "\"Crowds love a story,\" Seyla grins. \"Shall I announce you?\"",
+      "choices": [
+        { "id": "announce", "text": "Let the crowd know I'm ready." },
+        { "id": "goodbye", "text": "Maybe later." }
+      ]
+    },
+    "announce": {
+      "text": "Seyla raises her hands. \"Challenger on the sands!\"",
+      "effects": [
+        { "type": "interaction", "name": "join_arena" }
+      ],
+      "next": "root"
+    },
+    "goodbye": {
+      "text": "\"I'll keep the crowd warm for you.\"",
+      "end": true
+    }
+  }
+}
+

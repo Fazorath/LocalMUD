@@ -1,0 +1,12 @@
+{
+  "id": "gambler",
+  "name": "Gambler Thresh",
+  "role": "takes bets on arena hopefuls",
+  "room_id": "grand_arena",
+  "lines": [
+    "\"Odds favor the bold,\" Thresh whispers."
+  ],
+  "interactions": ["talk", "bet"],
+  "dialogue_id": "gambler_dialogue"
+}
+

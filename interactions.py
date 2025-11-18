@@ -5,6 +5,7 @@ from typing import Dict, List, Optional, Protocol, TYPE_CHECKING
 
 import ui
 from dialogue import DialogueManager
+import arena_rewards
 
 if TYPE_CHECKING:
     from game_state import GameState
@@ -175,4 +176,30 @@ class SparInteraction:
                 "Spearmaster Tevlek taps your shoulder. 'Good form, but keep your guard up.'"
             )
         ]
+
+
+class ArenaPanelInteraction:
+    def run(self, player: "Player", npc: "NPC", game_state: "GameState") -> List[str]:
+        return [arena_rewards.format_arena_panel(player)]
+
+
+class JoinArenaInteraction:
+    def run(self, player: "Player", npc: "NPC", game_state: "GameState") -> List[str]:
+        if player.current_room != "grand_arena":
+            return [ui.warning("You must be in the grand arena to enlist.")]
+        game_state.arena_queue_ready = True
+        return [ui.info("Your name is added to the arena roster.")]
+
+
+class BetPromptInteraction:
+    def run(self, player: "Player", npc: "NPC", game_state: "GameState") -> List[str]:
+        return [
+            ui.info("Use 'bet challenger <amount>' or 'bet opponent <amount>' to wager marks.")
+        ]
+
+
+class HealInteraction:
+    def run(self, player: "Player", npc: "NPC", game_state: "GameState") -> List[str]:
+        cost = 0 if player.fame < 5 else 1
+        return [player.receive_medic_heal(cost)]
 

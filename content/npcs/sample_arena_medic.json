@@ -1,0 +1,12 @@
+{
+  "id": "arena_medic",
+  "name": "Arena Medic Doran",
+  "role": "patches up bruised challengers",
+  "room_id": "grand_arena",
+  "lines": [
+    "\"Hold still, this will sting,\" Doran mutters."
+  ],
+  "interactions": ["talk", "heal"],
+  "dialogue_id": "arena_medic_dialogue"
+}
+

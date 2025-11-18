@@ -1,0 +1,12 @@
+{
+  "id": "arena_announcer",
+  "name": "Arena Announcer Seyla",
+  "role": "stirs the crowd with booming introductions",
+  "room_id": "grand_arena",
+  "lines": [
+    "\"Another challenger dares the sands!\" Seyla calls."
+  ],
+  "interactions": ["talk"],
+  "dialogue_id": "arena_announcer_dialogue"
+}
+
